@@ -128,17 +128,96 @@ size_t loadTriangleMesh(
         GLenum usage,
         GLuint & vao,
         GLuint & vbo) {
-    // Triangle description
+    
+    struct Vertex {
+    	glm::vec3 position;
+    	glm::vec3 normal;
+    	glm::vec2 textureCoordinate;
+	};
+    
+    bool hasNormals = normalIndices.size() > 0;
+    bool hasTextureCoordinates = textureCoordinateIndices.size() > 0;
+    
+    std::vector<Vertex> vertices;
+    
+    for (size_t i=0; i< positionIndices.size() / 3; i++){
+    	
+		Vertex triangleVertices[3];
+		
+		for(size_t j = 0; j<3; j++){
+			Vertex & vertex = triangleVertices[j];
+			vertex.position = positions[positionIndices[i * 3 + j]];
+		}
+		
+		if(hasNormals){
+			for(size_t j = 0; j<3; j++){
+			Vertex & vertex = triangleVertices[j];
+			vertex.normal = normals[normalIndices[i * 3 + j]];
+			}
+		}
+		else{
+			Vertex & vertex0 = triangleVertices[0];
+			Vertex & vertex1 = triangleVertices[1];
+			Vertex & vertex2 = triangleVertices[2];
+			
+			glm::vec3 u = vertex1.position - vertex0.position;
+			glm::vec3 v = vertex2.position - vertex0.position;
+			
+			glm::vec3 n = glm::normalize(glm::cross(u,v));
+			
+			vertex0.normal = n;
+			vertex1.normal = n;
+			vertex2.normal = n;
+		
+		}
+		
+		if(hasTextureCoordinates){
+			
+			for(size_t j = 0; j<3; j++){
+				Vertex & vertex = triangleVertices[j];
+				vertex.textureCoordinate = textureCoordinates[textureCoordinateIndices[i * 3 + j]];
+			}
+		}
+		else{
+			Vertex & vertex0 = triangleVertices[0];
+			Vertex & vertex1 = triangleVertices[1];
+			Vertex & vertex2 = triangleVertices[2];
+			
+			vertex0.textureCoordinate = glm::vec2(0.0f, 0.0f);
+			vertex1.textureCoordinate = glm::vec2(1.0f, 0.0f);
+			vertex2.textureCoordinate = glm::vec2(0.0f, 1.0f);
+		}
+		
+		for(size_t i= 0; i<3; i++){
+			vertices.push_back(triangleVertices[i]);
+		}
+	}
+    
+	/*
+	// Triangle 1
     GLfloat vertices[] = {
-        -0.5f, -0.5f, 0.0f, // First vertex position
-         1.0f,  0.0f, 0.0f, // First vertex color
+         0.0f,  0.0f, 0.0f, // First vertex position    - v0
+         0.0f,  0.0f, 1.0f, // First vertex color       - vn0
          
-         0.5f, -0.5f, 0.0f, // Second vertex position
-         0.0f,  1.0f, 0.0f, // Second vertex color
+         1.0f,  0.0f, 0.0f, // Second vertex position   - v1
+         0.0f,  0.0f, 1.0f, // Second vertex color      - vn0
          
-         0.0f,  0.5f, 0.0f, // Third vertex position
-         0.0f,  0.0f, 1.0f, // Third vertex color
+         1.0f,  1.0f, 0.0f, // Third vertex position    - v2
+         0.0f,  0.0f, 1.0f, // Third vertex color       - vn0
+         
+    // Triangle 2
+         
+		 0.0f,  0.0f, 0.0f, // First vertex position    - v0
+         0.0f,  0.0f, 1.0f, // First vertex color       - vn0
+         
+         1.0f,  1.0f, 0.0f, // Third vertex position    - v2
+         0.0f,  0.0f, 1.0f, // Third vertex color       - vn0
+         
+         0.0f,  1.0f, 0.0f, // Third vertex position    - v3
+         0.0f,  0.0f, 1.0f, // Third vertex color       - vn0
     };
+    */
+    
     
     // Create and bind vertex array object
     glGenVertexArrays(1, &vao);
@@ -151,8 +230,8 @@ size_t loadTriangleMesh(
     // Copy vertex attribute data to vertex buffer object
     glBufferData(
         GL_ARRAY_BUFFER,
-        sizeof(vertices),
-        vertices,
+        vertices.size() * sizeof(Vertex),
+        vertices.data(),
         usage);
     
     // Define position attribute to shader program
@@ -161,7 +240,7 @@ size_t loadTriangleMesh(
         3,
         GL_FLOAT,
         false,
-        6 * sizeof(GLfloat),
+        8 * sizeof(GLfloat),
         (const GLvoid *)nullptr);
     
     // Enable position attribute to shader program
@@ -173,14 +252,25 @@ size_t loadTriangleMesh(
         3,
         GL_FLOAT,
         false,
-        6 * sizeof(GLfloat),
+        8 * sizeof(GLfloat),
         (const GLvoid *)(3 * sizeof(GLfloat)));
     
     // Enable color attribute to shader program
     glEnableVertexAttribArray(1);
     
+    glVertexAttribPointer(
+        2,
+        2,
+        GL_FLOAT,
+        false,
+        8 * sizeof(GLfloat),
+        (const GLvoid *)(6 * sizeof(GLfloat)));
+    
+    // Enable color attribute to shader program
+    glEnableVertexAttribArray(2);
+    
     // Return vertex count or three times the triangle count
-    return 3;
+    return positionIndices.size(); //numero de vertices * numero de triangulos
 }
 
 // Compile shader source code from text file format
@@ -448,7 +538,7 @@ int main(int argc, char ** argv) {
     
     // Setup view matrix
     glm::mat4 view = glm::lookAt(
-        glm::vec3(0.0f, 0.0f, 2.0f),
+        glm::vec3(0.0f, 0.0f, 20.0f),
         glm::vec3(0.0f),
         glm::vec3(0.0f, 1.0f, 0.0f));
     
