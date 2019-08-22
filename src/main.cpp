@@ -1,3 +1,9 @@
+//troca cor shader frag
+//troca distancia
+//carregar obj
+//botao de girar
+//vetor de vertices (retangulo)
+
 #include <glad/glad.h>
 #include <glfw/glfw3.h>
 
@@ -140,7 +146,7 @@ size_t loadTriangleMesh(
     
     std::vector<Vertex> vertices;
     
-    for (size_t i=0; i< positionIndices.size() / 3; i++){
+    for (size_t i=0; i< positionIndices.size() / 3; i++){                                
     	
 		Vertex triangleVertices[3];
 		
@@ -237,11 +243,11 @@ size_t loadTriangleMesh(
     // Define position attribute to shader program
     glVertexAttribPointer(
         0,
-        3,
+        3,                                                            
         GL_FLOAT,
         false,
-        8 * sizeof(GLfloat),
-        (const GLvoid *)nullptr);
+        sizeof(Vertex),
+        (const GLvoid *)nullptr);                                                                   //vetor de vertices (retangulo)
     
     // Enable position attribute to shader program
     glEnableVertexAttribArray(0);
@@ -252,7 +258,7 @@ size_t loadTriangleMesh(
         3,
         GL_FLOAT,
         false,
-        8 * sizeof(GLfloat),
+        sizeof(Vertex),
         (const GLvoid *)(3 * sizeof(GLfloat)));
     
     // Enable color attribute to shader program
@@ -263,7 +269,7 @@ size_t loadTriangleMesh(
         2,
         GL_FLOAT,
         false,
-        8 * sizeof(GLfloat),
+        sizeof(Vertex),
         (const GLvoid *)(6 * sizeof(GLfloat)));
     
     // Enable color attribute to shader program
@@ -392,15 +398,51 @@ void resize(GLFWwindow * window, int width, int height) {
     PROJECTION = glm::perspective(45.0f, width / (float)height, 0.001f, 1000.0f);
 }
 
+																												//https://www.glfw.org/docs/latest/input_guide.html#input_mouse
+//Mouse event callback movimentação
+static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos){
+    	MODEL = glm::translate(glm::mat4(1.0f), glm::vec3((float)(xpos*0.008),-(float)(ypos*0.008),0.0f)); 		// arrastarpra cima e pra baixo
+}
+
+//Mouse event callback aproximação
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{ 
+	if(yoffset==-1)
+		MODEL = glm::scale(MODEL, glm::vec3(0.9f, 0.9f, 0.9f));
+	if(yoffset==1)
+		MODEL = glm::scale(MODEL, glm::vec3(1.1f, 1.1f, 1.1f));
+}
+
 // Keyboard event callback
 void keyboard(
         GLFWwindow * window,
         int key, int scancode, int action, int modifier) {
-    if (key == GLFW_KEY_A && action == GLFW_PRESS)
+    if (key == GLFW_KEY_C && action == GLFW_PRESS)                                                             //C de cor de fundo
         BACKGROUND_STATE = !BACKGROUND_STATE;
     
     if (key == GLFW_KEY_RIGHT && (action == GLFW_PRESS || action == GLFW_REPEAT))
         MODEL = glm::rotate(MODEL, 0.1f, glm::vec3(0.0f, 1.0f, 0.0f));
+        
+    if (key == GLFW_KEY_LEFT && (action == GLFW_PRESS || action == GLFW_REPEAT))
+        MODEL = glm::rotate(MODEL, 0.1f, glm::vec3(0.0f, -1.0f, 0.0f));
+        
+    /*if (key == GLFW_KEY_UP && (action == GLFW_PRESS || action == GLFW_REPEAT))                             //girar pra cima e pra baixo
+        MODEL = glm::rotate(MODEL, 0.1f, glm::vec3(1.0f, 0.0f, 0.0f));
+        
+    if (key == GLFW_KEY_DOWN && (action == GLFW_PRESS || action == GLFW_REPEAT))
+        MODEL = glm::rotate(MODEL, 0.1f, glm::vec3(-1.0f, 0.0f, 0.0f));
+    */    
+    if (key == GLFW_KEY_A && (action == GLFW_PRESS || action == GLFW_REPEAT))                                  //A de aumentar tamanho
+        MODEL = glm::scale(MODEL, glm::vec3(1.1f, 1.1f, 1.1f));                                                //https://glm.g-truc.net/0.9.4/api/a00206.html
+    
+	if (key == GLFW_KEY_D && (action == GLFW_PRESS || action == GLFW_REPEAT))                                  //D de diminuir tamanho
+        MODEL = glm::scale(MODEL, glm::vec3(0.9f, 0.9f, 0.9f));
+	     
+	if (key == GLFW_KEY_UP && (action == GLFW_PRESS || action == GLFW_REPEAT))                                 // arrastarpra cima e pra baixo
+    	MODEL = glm::translate(MODEL, glm::vec3(0.0f, 0.05f, 0.0f));                                                                                 
+
+	if (key == GLFW_KEY_DOWN && (action == GLFW_PRESS || action == GLFW_REPEAT))                               
+    	MODEL = glm::translate(MODEL, glm::vec3(0.0f, -0.05f, 0.0f));
 }
 
 int main(int argc, char ** argv) {
@@ -473,9 +515,11 @@ int main(int argc, char ** argv) {
         return -1;
     }
 
-    // Register event callbacks
+                                                                                                             // Register event callbacks
     glfwSetFramebufferSizeCallback(window, resize);
     glfwSetKeyCallback(window, keyboard);
+    glfwSetCursorPosCallback(window, cursor_position_callback);
+    glfwSetScrollCallback(window, scroll_callback);
 
     // Setup window context
     glfwMakeContextCurrent(window);
@@ -514,7 +558,7 @@ int main(int argc, char ** argv) {
     std::vector<size_t> textureCoordinateIndices;
     
     readTriangleMesh(
-        "../res/meshes/bunny.obj",
+        "../res/meshes/bunny.obj",                                                                                  //carregar obj
         positions,
         normals,
         textureCoordinates,
@@ -538,7 +582,7 @@ int main(int argc, char ** argv) {
     
     // Setup view matrix
     glm::mat4 view = glm::lookAt(
-        glm::vec3(0.0f, 0.0f, 20.0f),
+        glm::vec3(0.0f, 0.0f, 20.0f),                                                                                //troca distancia
         glm::vec3(0.0f),
         glm::vec3(0.0f, 1.0f, 0.0f));
     
@@ -549,7 +593,7 @@ int main(int argc, char ** argv) {
     while (!glfwWindowShouldClose(window)) {
         // Setup color buffer
         if (BACKGROUND_STATE)
-            glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+            glClearColor(1.0f, 0.0f, 0.0f, 1.0f);                                                                    //muda cor de fundo  RGBA
         else
             glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
             
